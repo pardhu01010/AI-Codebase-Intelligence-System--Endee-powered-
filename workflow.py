@@ -5,7 +5,7 @@ from typing import Any
 
 import inngest
 
-from ast_parser import parse_python_file
+from ast_parser import parse_python_file, parse_generic_file
 from chunks import build_chunks
 from config import (
     INNGEST_DEV,
@@ -18,6 +18,8 @@ from endee_store import EndeeDB
 from ingestion import cleanup_repo, clone_repo, get_code_files
 
 _log = logging.getLogger(__name__)
+
+INGEST_STATUS = {"status": "idle"}
 
 inngest_client = inngest.Inngest(
     app_id="endee_ai_project",
@@ -33,8 +35,11 @@ def _parse_and_chunk_sync(code_files: list[str]) -> list[dict[str, Any]]:
     for file_path in code_files:
         if file_path.endswith(".py"):
             parsed_items = parse_python_file(file_path)
-            if parsed_items:
-                all_chunks.extend(build_chunks(parsed_items))
+        else:
+            parsed_items = parse_generic_file(file_path)
+        
+        if parsed_items:
+            all_chunks.extend(build_chunks(parsed_items))
     return all_chunks
 
 
@@ -79,6 +84,18 @@ async def ingest_github_repo(ctx: inngest.Context) -> dict:
 
         code_files = await step.run("get_code_files", _get_files)
 
+        async def _clear_index():
+            def do_clear():
+                db = EndeeDB()
+                try:
+                    db.client.delete_index(db.index_name)
+                except Exception:
+                    pass
+                db._ensure_index_exists()
+            return await asyncio.to_thread(do_clear)
+
+        await step.run("clear_old_index", _clear_index)
+
         async def _parse_and_chunk():
             return await asyncio.to_thread(_parse_and_chunk_sync, code_files)
 
@@ -102,8 +119,18 @@ async def ingest_github_repo(ctx: inngest.Context) -> dict:
             await step.run(f"embed_and_insert_batch_{i}", _embed_and_insert)
 
         await step.run("cleanup_repo", _cleanup)
+        
+        async def _mark_done():
+            INGEST_STATUS["status"] = "completed"
+        await step.run("mark_done", _mark_done)
+        
         return {"status": "Success", "indexed_chunks": len(all_chunks)}
 
-    except Exception:
+    except Exception as e:
         await step.run("cleanup_repo_after_error", _cleanup)
+        
+        async def _mark_error():
+            INGEST_STATUS["status"] = "error"
+        await step.run("mark_done_error", _mark_error)
+        
         raise

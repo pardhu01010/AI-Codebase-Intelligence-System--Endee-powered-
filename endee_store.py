@@ -1,4 +1,5 @@
 import hashlib
+import uuid
 from typing import Any
 
 from endee import Endee
@@ -96,11 +97,7 @@ class EndeeDB:
             return
         vectors_to_insert = []
         for chunk, embedding in zip(chunks, embeddings):
-            content_hash = hashlib.md5(chunk["content"].encode()).hexdigest()
-            doc_id = (
-                f"{chunk['metadata']['file']}_{chunk['metadata']['type']}_"
-                f"{chunk['metadata']['name']}_{content_hash}"
-            )
+            doc_id = uuid.uuid4().hex
             file_filter = str(chunk["metadata"].get("file", ""))[:50]
             type_filter = str(chunk["metadata"].get("type", ""))[:50]
             vectors_to_insert.append(
@@ -116,6 +113,7 @@ class EndeeDB:
             print(f"Successfully inserted {len(vectors_to_insert)} vectors.")
         except Exception as e:
             print(f"Failed to insert vectors: {e}")
+            raise RuntimeError(f"Upsert failed: {e}") from e
 
     def query(
         self,

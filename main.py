@@ -10,7 +10,7 @@ from pydantic import BaseModel
 from embeddings import get_encoder
 from llm import generate_answer
 from retrieval import format_context, retrieve_context
-from workflow import ingest_github_repo, inngest_client
+from workflow import ingest_github_repo, inngest_client, INGEST_STATUS
 
 
 @asynccontextmanager
@@ -37,21 +37,27 @@ class IngestRequest(BaseModel):
 
 class QueryRequest(BaseModel):
     query: str
+    top_k: int = 5
 
 
 @app.post("/ingest")
 async def trigger_ingest(request: IngestRequest):
+    INGEST_STATUS["status"] = "running"
     await inngest_client.send(
         inngest.Event(name="repo/ingest", data={"repo_url": request.repo_url})
     )
     return {"message": "Ingestion started in the background."}
+
+@app.get("/ingest/status")
+async def get_ingest_status():
+    return INGEST_STATUS
 
 
 @app.post("/query")
 async def query_codebase(request: QueryRequest):
     try:
         context_chunks = await asyncio.to_thread(
-            retrieve_context, request.query, None, 5
+            retrieve_context, request.query, None, request.top_k
         )
     except Exception as e:
         return {

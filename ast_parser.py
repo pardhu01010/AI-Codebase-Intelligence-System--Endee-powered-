@@ -44,4 +44,41 @@ def parse_python_file(file_path: str) -> List[Dict[str, Any]]:
                 }
             )
 
+    items.append(
+        {
+            "file": os.path.basename(file_path),
+            "filepath": file_path,
+            "type": "module",
+            "name": os.path.basename(file_path),
+            "docstring": ast.get_docstring(tree) or "",
+            "start_line": 1,
+            "end_line": len(lines),
+            "code": source,
+        }
+    )
+
     return items
+
+
+def parse_generic_file(file_path: str) -> List[Dict[str, Any]]:
+    """Fallback text parsing for non-python files."""
+    try:
+        with open(file_path, "r", encoding="utf-8") as f:
+            source = f.read()
+    except OSError:
+        return []
+        
+    if not source.strip():
+        return []
+        
+    lines = source.splitlines()
+    return [{
+        "file": os.path.basename(file_path),
+        "filepath": file_path,
+        "type": "file",
+        "name": os.path.basename(file_path),
+        "docstring": "",
+        "start_line": 1,
+        "end_line": len(lines),
+        "code": source,
+    }]

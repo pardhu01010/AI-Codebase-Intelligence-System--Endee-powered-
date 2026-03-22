@@ -19,12 +19,24 @@ repo_url = st.sidebar.text_input(
 if st.sidebar.button("Ingest Repo"):
     if repo_url:
         try:
-            with st.spinner("Starting ingestion workflow (check Inngest dev server)..."):
+            with st.spinner("Ingesting repository... Please wait (this can take 1-3 minutes)."):
                 response = requests.post(f"{API_URL}/ingest", json={"repo_url": repo_url})
                 if response.status_code == 200:
-                    st.sidebar.success(
-                        "Ingestion started. Vectors will appear in Endee shortly."
-                    )
+                    import time
+                    while True:
+                        status_res = requests.get(f"{API_URL}/ingest/status")
+                        if status_res.status_code == 200:
+                            status = status_res.json().get("status")
+                            if status == "completed":
+                                st.sidebar.success("Successfully completed! Now you can ask your questions.")
+                                break
+                            elif status == "error":
+                                st.sidebar.error("Ingestion failed! Please check the Inngest Dev Server logs.")
+                                break
+                        else:
+                            st.sidebar.error("Failed to check ingestion status.")
+                            break
+                        time.sleep(2)
                 else:
                     st.sidebar.error(f"Error: {response.text}")
         except Exception as e:
@@ -33,15 +45,16 @@ if st.sidebar.button("Ingest Repo"):
         st.sidebar.warning("Please enter a URL")
 
 st.header("2. Ask Questions")
+top_k = st.number_input("Number of context chunks to retrieve", min_value=1, max_value=50, value=5)
 query = st.text_input(
     "What do you want to know about the codebase?",
     placeholder="e.g. Where is the dataset loading handled?",
 )
 if st.button("Search & Reason"):
     if query:
-        with st.spinner("Retrieving context from Endee and reasoning with Groq..."):
+        with st.spinner(f"Retrieving top {top_k} chunks from Endee and reasoning with Groq..."):
             try:
-                response = requests.post(f"{API_URL}/query", json={"query": query})
+                response = requests.post(f"{API_URL}/query", json={"query": query, "top_k": top_k})
                 if response.status_code == 200:
                     data = response.json()
                     st.markdown("### Answer")

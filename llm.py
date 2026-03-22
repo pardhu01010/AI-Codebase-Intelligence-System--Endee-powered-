@@ -10,7 +10,7 @@ def get_groq_client() -> Groq:
 
 
 def generate_answer(query: str, context: str) -> str:
-    """Answer using Groq (LLaMA 3 70B) and retrieved context only."""
+    """Answer using Groq (LLaMA 3.3 70B) and retrieved context only."""
     try:
         client = get_groq_client()
     except ValueError as e:
@@ -25,7 +25,7 @@ def generate_answer(query: str, context: str) -> str:
     user_prompt = f"Context from the codebase:\n{context}\n\nQuestion: {query}\nAnswer:"
     try:
         completion = client.chat.completions.create(
-            model="llama3-70b-8192",
+            model="llama-3.3-70b-versatile",
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},

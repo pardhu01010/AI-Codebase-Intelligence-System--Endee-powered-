@@ -9,6 +9,7 @@ __pycache__/
 htmlcov/
 .tox/
 .nox/
+uv.lock
 
 # Packaging / build artifacts
 build/
