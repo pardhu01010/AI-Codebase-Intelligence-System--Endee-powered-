@@ -1,10 +1,52 @@
-# Python-generated files
+# Bytecode / caches
 __pycache__/
-*.py[oc]
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# Packaging / build artifacts
 build/
 dist/
 wheels/
-*.egg-info
+*.egg-info/
+*.egg
+pip-wheel-metadata/
+share/python-wheels/
 
 # Virtual environments
-.venv
+.venv/
+venv/
+env/
+ENV/
+
+# Environment and secrets (never commit)
+.env
+.env.*
+!.env.example
+
+# Local data (vector DB, models cache, etc.)
+endee-storage/
+*.db
+*.sqlite3
+
+# OS / editor
+.DS_Store
+Thumbs.db
+Desktop.ini
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Streamlit
+.streamlit/secrets.toml
