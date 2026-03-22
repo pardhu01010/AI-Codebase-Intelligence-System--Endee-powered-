@@ -19,7 +19,9 @@ inngest_client = inngest.Inngest(
     fn_id="ingest_github_repo",
     trigger=inngest.TriggerEvent(event="repo/ingest"),
 )
-async def ingest_github_repo(ctx: inngest.Context, step: inngest.Step) -> dict:
+async def ingest_github_repo(ctx: inngest.Context) -> dict:
+    """SDK passes a single Context; step API is ctx.step (not a second argument)."""
+    step = ctx.step
     repo_url = ctx.event.data.get("repo_url")
     if not repo_url:
         return {"error": "Missing repo_url"}

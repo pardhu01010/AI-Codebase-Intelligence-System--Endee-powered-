@@ -17,7 +17,9 @@ Ingest a GitHub repo (Python AST chunks → embeddings → **Endee**), then ask 
 
 ## Run (three terminals)
 
-Use **three terminals** from the project folder (after `uv sync`). The API listens on **port 8000** so it matches the Inngest dev URL.
+Use **three terminals** from the project folder (after `uv sync`).
+
+**Ports must match:** `uv run uvicorn main:app --reload` defaults to **port 8000** (host 127.0.0.1). Your Inngest CLI `-u` URL must use the **same** host and port (e.g. `http://127.0.0.1:8000/api/inngest`). If you use `--port 8080`, change the Inngest URL to `...8080/api/inngest` and set `API_BASE_URL` in `.env` accordingly.
 
 **1 — Backend (FastAPI + Inngest routes on `/api/inngest`)**
 
@@ -56,5 +58,5 @@ You will set **two URLs** in `.env` on purpose: **`ENDEE_URL`** is the Endee vec
 - `GROQ_API_KEY` — required for answers
 - `ENDEE_URL` — Endee API (default `http://localhost:8001` so it does not clash with FastAPI on **8000**)
 - `API_BASE_URL` — where Streamlit sends `/ingest` and `/query` (default `http://127.0.0.1:8000`)
-- Inngest: `INNGEST_EVENT_KEY`, `INNGEST_SIGNING_KEY`, `INNGEST_DEV`
+- Inngest: `INNGEST_EVENT_KEY`, `INNGEST_DEV`. For **local dev**, leave **`INNGEST_SIGNING_KEY` empty** (do not set it to `local` — that is not a valid key and breaks the SDK during sync; a real Inngest signing key is hex-formatted).
 - Optional: `GITHUB_TOKEN` for private repos
