@@ -129,3 +129,10 @@ npx inngest-cli@latest dev -u http://127.0.0.1:8000/api/inngest
 uv run streamlit run app.py
 ```
 *(Opens the primary interactive window at `http://localhost:8501`)*
+
+---
+
+## 👤 Author
+**[pardhu01010](https://github.com/pardhu01010)**
+
+Made with ❤️ using Python, FastAPI, Streamlit, Endee, Inngest, and Groq.
