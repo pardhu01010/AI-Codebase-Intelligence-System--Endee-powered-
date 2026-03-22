@@ -10,17 +10,17 @@ Heavy, long-running repository ingestions are seamlessly orchestrated in the bac
 
 > **Image 1: Streamlit UI - Ingestion & Waiting Spinner**  
 > *(Showcase the sidebar where the GitHub URL is entered, and the active waiting spinner as the codebase is processed in the background.)*  
-> `![Ingestion Spinner](docs/screenshots/ingestion_spinner.png)`
+![Ingestion Spinner](docs/screenshots/ingestion_spinner.png)
 
 
 > **Image 2: Streamlit UI - Codebase Q&A**  
 > *(Showcase the main question interface answering a complex question about the repo, successfully citing exact file names, functions, and module sources.)*  
-> `![Question and Answer](docs/screenshots/qna_results.png)`
+![Question and Answer](docs/screenshots/qna_results.png)
 
 
 > **Image 3: Inngest Dev Server - Run Trace**  
 > *(Showcase the Inngest dashboard at http://localhost:8288 highlighting a completed `ingest_github_repo` run with the `clear_old_index` and `embed_and_insert_batch` steps glowing green.)*  
-> `![Inngest Trace](docs/screenshots/inngest_trace.png)`
+![Inngest Trace](docs/screenshots/inngest_trace.png)
 
 ---
 
