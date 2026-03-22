@@ -8,20 +8,31 @@ Heavy, long-running repository ingestions are seamlessly orchestrated in the bac
 
 ## 📸 Visual Walkthrough
 
-> **[TODO: Add your Image Here]**  
 > **Image 1: Streamlit UI - Ingestion & Waiting Spinner**  
 > *(Showcase the sidebar where the GitHub URL is entered, and the active waiting spinner as the codebase is processed in the background.)*  
 > `![Ingestion Spinner](docs/screenshots/ingestion_spinner.png)`
 
-> **[TODO: Add your Image Here]**  
+
 > **Image 2: Streamlit UI - Codebase Q&A**  
 > *(Showcase the main question interface answering a complex question about the repo, successfully citing exact file names, functions, and module sources.)*  
 > `![Question and Answer](docs/screenshots/qna_results.png)`
 
-> **[TODO: Add your Image Here]**  
+
 > **Image 3: Inngest Dev Server - Run Trace**  
 > *(Showcase the Inngest dashboard at http://localhost:8288 highlighting a completed `ingest_github_repo` run with the `clear_old_index` and `embed_and_insert_batch` steps glowing green.)*  
 > `![Inngest Trace](docs/screenshots/inngest_trace.png)`
+
+---
+
+## 💡 Practical Use Cases & Examples
+
+This intelligence system is built for developers, code reviewers, and system architects who need to intimately understand unfamiliar codebases without spending hours tracing files manually.
+
+**Example Scenarios:**
+- **Onboarding Faster:** Provide a GitHub URL to a complex enterprise repository and instantly ask: *"Where does the user authentication flow begin, and what hashing algorithm is used for passwords?"*
+- **Code Auditing & Refactoring:** Analyze interconnected structures by asking: *"List all the components in the codebase that directly interact with the database session manager."*
+- **Bug Tracking Insight:** Paste a confusing traceback error into the prompt and ask: *"I'm getting a NullPointerException in the payload validation stage. Which Python file manages the primary payload schemas?"*
+- **Dependency & Stack Mapping:** Intuit library usage by asking: *"Does this application use asynchronous requests, and if so, what module configures the client?"*
 
 ---
 
