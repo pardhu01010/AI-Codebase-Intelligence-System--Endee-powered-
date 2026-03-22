@@ -1,297 +1,131 @@
-# AI Codebase Intelligence
+# AI Codebase Intelligence System 🧠💻
 
-An **end-to-end system** that ingests a GitHub repository, builds **structured + semantic** chunks, stores them in **Endee** (vector database), and answers natural-language questions using **retrieval + Groq (LLaMA 3.3 70B)**. Long-running ingestion is orchestrated by **Inngest** so the API stays responsive. The **Streamlit** UI triggers ingest and Q&A.
+An **end-to-end, locally-hostable AI Codebase Intelligence System**. This platform enables you to ingest any GitHub repository, build **structured and semantic code chunks**, store them directly into an **Endee Vector Database**, and answer highly complex natural-language questions about that codebase using **Retrieval-Augmented Generation (RAG)** powered by **Groq (LLaMA 3.3 70B)**.
 
----
-
-## Screenshot placeholder (Streamlit UI + Inngest)
-
-> **Add your screenshot here** — Replace the line below with a real image file in the repo (e.g. `docs/screenshots/streamlit-qna-inngest.png`) showing:
->
-> 1. **Streamlit** — sidebar with GitHub URL, main area with a **question** and **Answer** / **Sources** for an ingested repo.  
-> 2. **Inngest Dev Server** (optional in the same image or a second shot) — **Runs** tab with `ingest_github_repo` completing after `repo/ingest`.
-
-```markdown
-<!-- TODO: Save your screenshot as docs/screenshots/streamlit-qna-inngest.png then uncomment:
-
-![Streamlit question/answer and Inngest ingest run](docs/screenshots/streamlit-qna-inngest.png)
-
--->
-```
-
-The folder `docs/screenshots/` exists in the repo (`.gitkeep`) so you can drop the PNG there and reference it from the line above.
-
-Until you add the file, you can paste the image in GitHub README edit UI or keep the HTML comment as a reminder.
+Heavy, long-running repository ingestions are seamlessly orchestrated in the background by **Inngest**, keeping the API incredibly fast and responsive while real-time UI polling presents an intuitive frontend experience for the user via **Streamlit**.
 
 ---
 
-## What this project does
+## 📸 Visual Walkthrough
 
-| Stage | What happens |
-|--------|----------------|
-| **Ingest** | Clone repo → discover files → parse (Python AST + generic text) → chunk → embed (SentenceTransformers) → upsert vectors into Endee. |
-| **Query** | Embed user question → similarity search in Endee → format snippets → LLM answers **only from retrieved context** → return answer + source labels. |
+> **[TODO: Add your Image Here]**  
+> **Image 1: Streamlit UI - Ingestion & Waiting Spinner**  
+> *(Showcase the sidebar where the GitHub URL is entered, and the active waiting spinner as the codebase is processed in the background.)*  
+> `![Ingestion Spinner](docs/screenshots/ingestion_spinner.png)`
 
-**Important:** `ENDEE_URL` must point to a **running Endee server**, not to FastAPI. FastAPI and Endee use **different ports**.
+> **[TODO: Add your Image Here]**  
+> **Image 2: Streamlit UI - Codebase Q&A**  
+> *(Showcase the main question interface answering a complex question about the repo, successfully citing exact file names, functions, and module sources.)*  
+> `![Question and Answer](docs/screenshots/qna_results.png)`
 
----
-
-## Architecture
-
-```mermaid
-flowchart LR
-  subgraph ui [Streamlit app.py]
-    ST[User: URL + question]
-  end
-  subgraph api [FastAPI main.py]
-    ING["POST /ingest"]
-    QRY["POST /query"]
-    INN["/api/inngest"]
-  end
-  subgraph inngest [Inngest Dev Server]
-    EV[Events + function runs]
-  end
-  subgraph wf [workflow.py]
-    FN[ingest_github_repo]
-  end
-  subgraph data [Data plane]
-    GIT[git clone]
-    PARSE[ast_parser + chunks]
-    EMB[embeddings]
-    ED[(Endee index)]
-  end
-  subgraph llm [Groq]
-    G[llama-3.3-70b-versatile]
-  end
-  ST --> ING
-  ST --> QRY
-  ING --> EV
-  EV --> FN
-  FN --> GIT --> PARSE --> EMB --> ED
-  QRY --> EMB
-  QRY --> G
-  ED --> QRY
-```
+> **[TODO: Add your Image Here]**  
+> **Image 3: Inngest Dev Server - Run Trace**  
+> *(Showcase the Inngest dashboard at http://localhost:8288 highlighting a completed `ingest_github_repo` run with the `clear_old_index` and `embed_and_insert_batch` steps glowing green.)*  
+> `![Inngest Trace](docs/screenshots/inngest_trace.png)`
 
 ---
 
-## Repository layout
+## 🚀 How It Works: Detailed Workflows
 
-```
+The intelligence system operates on two incredibly robust parallel workflows:
+
+### 1. The Ingestion Workflow (`repo/ingest`)
+When a user submits a GitHub repository URL into the Streamlit UI, the system executes a deeply integrated background pipeline to process the code smoothly without blocking the UI:
+1. **Trigger & Polling:** FastAPI sets an in-memory `INGEST_STATUS` flag to `"running"` and triggers an Inngest event. Streamlit continuously polls `/ingest/status` to show the user a loading spinner.
+2. **Git Clone:** Inngest performs a shallow clone of the target repo to a temporary directory.
+3. **File Discovery:** The crawler locates all valid files (`.py`, `.md`, `.js`, `.ts`, `.html`).
+4. **Clean Slate Vector Index:** The `clear_old_index` step securely connects to Endee and drops the previous vector index, ensuring that codebase context never overlaps between different repositories. 
+5. **AST Parsing & Chunking:** Python files are dynamically parsed using Abstract Syntax Trees (AST) to extract discrete classes, modules, and functions. Other files fall back to a generic chunker. 
+6. **Collision-Proof Embedding & Upserting:** Chunks are embedded using `sentence-transformers` and bundled in batches of 50. Every chunk is assigned a purely random **UUID** to completely bypass any duplicate ID collisions in the vector database.
+7. **Cleanup & Completion:** The temp repository is securely wiped from disk, and `INGEST_STATUS` flips to `"completed"`, telling Streamlit to release the spinner.
+
+### 2. The Question & Answer Workflow (`/query`)
+1. **Context Retrieval:** The user's query is embedded and cross-referenced mathematically against the Endee vector database to retrieve the top `N` chunks based on Cosine Similarity.
+2. **LLM Prompting:** The `retrieve_context` explicitly formats the retrieved raw codes and docstrings constraint into a strictly bounded system prompt.
+3. **Reasoning:** `Groq` evaluates the codebase chunks, generating an intelligent, highly cohesive answer while identifying exactly which file streams generated that specific thought process.
+
+---
+
+## 🏗️ Project Architecture & File Structure
+
+```text
 Endee_ai_project/
-├── app.py                 # Streamlit UI (ingest + ask + top_k)
-├── main.py                # FastAPI: /ingest, /query, /ingest/status, /health, Inngest mount
-├── workflow.py            # Inngest function ingest_github_repo + INGEST_STATUS
-├── config.py              # load_dotenv(override=True), URLs, Inngest keys, collision check
-├── ingestion.py           # git clone, file walk, cleanup temp dir
-├── ast_parser.py          # Python AST chunks + parse_generic_file for .md/.js/...
-├── chunks.py              # Build embedding text + metadata per item
-├── embeddings.py          # SentenceTransformer all-MiniLM-L6-v2 (384-dim)
-├── endee_store.py         # Endee client: index create/list, upsert, query
-├── retrieval.py           # Query embedding + Endee search + prompt formatting
-├── llm.py                 # Groq chat completions (grounded answers)
-├── docker-compose.yml     # Local Endee (host 8001 → container 8080)
-├── pyproject.toml         # Dependencies + console script codebase-api → main:main
-├── .env.example           # Template for .env (no secrets)
-├── .gitignore             # .env, .venv, endee-storage, build artifacts, etc.
-└── README.md              # This file
+├── app.py                 # 🖥️ Streamlit UI. Handles URL input, active background polling (spinner), `top_k` chunk adjustments, and displaying LLM reasoning.
+├── main.py                # ⚙️ FastAPI Backend. Serves `/ingest`, `/query`, and the fast `/ingest/status` in-memory polling endpoint. Connects to Inngest SDK.
+├── workflow.py            # 🔄 Background Orchestration. Contains the `ingest_github_repo` Inngest function, dictating the precise clone -> parse -> clear -> embed -> cleanup lifecycle.
+├── config.py              # 🔐 Environment Loader. Validates `.env` variables and prevents port collisions between FastAPI and the Endee DB.
+├── ingestion.py           # 📂 File Operations. Logic for safely executing `git clone`, walking the directory tree, and scrubbing temporary data.
+├── ast_parser.py          # 🌲 Syntax Parser. Uses Python's native `ast` library to logically split Python code into functional objects, plus generic file text chunking.
+├── chunks.py              # 🧩 Chunk Structuring. Formats the parsed AST data into standard JSON schemas with extremely detailed metadata for the Vector DB.
+├── embeddings.py          # 🧠 Embedding Engine. Wraps the local `sentence-transformers` (all-MiniLM-L6-v2) to map code strings into 384-dimensional dense vectors.
+├── endee_store.py         # 🗄️ Endee DB Client. The crucial wrapper for creating/wiping indices, querying exact similarities, and safely executing UUID-based chunk upserts.
+├── retrieval.py           # 🔍 Context Formatter. Bridging code mapping Endee vector query results into structured prompt injections for the LLM.
+├── llm.py                 # 🤖 Large Language Model. Interacts with the fast Groq API natively (requires `llama-3.3-70b-versatile`).
+├── docker-compose.yml     # 🐳 Docker Config. Stands up the blazing-fast local Endee Vector Database server.
+├── .gitignore             # 🚫 Git Exclusions. Secures `.env` secrets, `__pycache__`, `*.flag` debug states, and environment lockers from GitHub tracking.
+└── README.md              # 📖 This documentation file.
 ```
-
-Generated / local-only (not committed when ignored):
-
-- **`.venv/`** — Python virtual environment (`uv sync`).
-- **`endee-storage/`** — Local Endee data when using embedded storage (gitignored).
-- **`__pycache__/`** — Bytecode.
 
 ---
 
-## Tech stack
+## 🛠️ Tech Stack
 
 | Layer | Technology |
 |--------|------------|
-| UI | Streamlit (`app.py`) |
-| API | FastAPI + Uvicorn (`main.py`) |
-| Orchestration | Inngest Python SDK (`workflow.py`, route `/api/inngest`) |
-| Parsing | `ast` for `.py`; whole-file text chunks for other extensions |
-| Embeddings | `sentence-transformers` — `all-MiniLM-L6-v2` (384 dimensions) |
-| Vector DB | Endee HTTP API (`endee` package) |
-| LLM | Groq — `llama-3.3-70b-versatile` |
-| Config | `python-dotenv` — project `.env` overrides OS env (`override=True`) |
-| Packaging | `uv` / `setuptools`, Python **≥ 3.12** |
+| **Frontend UI** | Streamlit |
+| **API Backend** | FastAPI + Uvicorn |
+| **Orchestration** | Inngest Python SDK |
+| **Parser / Extractor** | Python `ast` module |
+| **Embeddings** | `sentence-transformers` (`all-MiniLM-L6-v2` / 384 dimensions) |
+| **Vector Database** | Endee HTTP API (Local Docker) |
+| **LLM Engine** | Groq API (`llama-3.3-70b-versatile`) |
 
 ---
 
-## Prerequisites
+## 💻 Getting Started
 
-- **Python 3.12+**, **Git** (for `git clone` during ingest).
-- **Docker** (recommended) to run **Endee** via `docker-compose.yml`.
-- **Node.js** (for `npx inngest-cli`) if you use the Inngest Dev Server locally.
-- Accounts/keys: **Groq API key**; optional **GitHub token** for private repos.
+### 1. Prerequisites
+- **Python 3.12+**
+- **Git** (for downloading repositories)
+- **Docker** (Required to run the Endee server locally)
+- **Node.js** (Required for the `npx inngest-cli` dev server)
+- **Groq API Key** (Get yours at [console.groq.com](https://console.groq.com/))
 
----
-
-## Environment variables
-
-Copy `.env.example` to `.env` and fill in values. The app loads **only** `.env` from the project root.
-
-| Variable | Purpose |
-|----------|---------|
-| `GROQ_API_KEY` | Required for `/query` LLM calls. |
-| `GITHUB_TOKEN` | Optional; private repo clone. |
-| `ENDEE_URL` | **Endee server root** (e.g. `http://127.0.0.1:8001`). **Must not** be the same host:port as FastAPI. |
-| `API_BASE_URL` | Where Streamlit calls the API (default `http://127.0.0.1:8000`). |
-| `INNGEST_EVENT_KEY` | Dev placeholder `local` is fine locally. |
-| `INNGEST_SIGNING_KEY` | Leave **empty** for local Inngest (do not use the string `local`). |
-| `INNGEST_DEV` | `1` for dev server mode. |
-| `INNGEST_REQUEST_TIMEOUT_MS` | Optional; default long timeout for slow steps. |
-
----
-
-## Endee vector database (required)
-
-Ingest and search need a **live Endee** instance at `ENDEE_URL`.
-
-From the project root:
-
-```bash
-docker compose up -d
-docker compose ps
-docker compose logs -f endee
-```
-
-The bundled `docker-compose.yml` maps **host port 8001** to the container’s **8080** (Endee’s default). Keep:
-
+### 2. Environment Variables
+Copy `.env.example` to a new `.env` file in the project root:
 ```env
-ENDEE_URL=http://127.0.0.1:8001
+GROQ_API_KEY="gsk_..."
+ENDEE_URL="http://127.0.0.1:8001"
+API_BASE_URL="http://127.0.0.1:8000"
+INNGEST_EVENT_KEY="local"
+INNGEST_SIGNING_KEY=""
+INNGEST_DEV=1
 ```
 
-Official docs: [Endee Quick Start](https://docs.endee.io/quick-start).
+### 3. Running the Architecture (4 Terminals Required)
 
----
+To run the application, you must spin up the interconnected processes. Open **Four Terminals** in your project root:
 
-## How to run (four processes)
-
-Use **four terminals** from the project directory after `uv sync`.
-
-### 0. Endee (Docker)
-
+**Terminal 1: Start the Vector Database**
 ```bash
 docker compose up -d
 ```
+*(Endee locally mounts on port 8001 to prevent conflicts with FastAPI)*
 
-### 1. FastAPI + Inngest HTTP handler
-
+**Terminal 2: Start the FastAPI Backend**
 ```bash
 uv run uvicorn main:app --host 127.0.0.1 --port 8000
 ```
+*(Do not use `--reload` during heavy ingestions as it can artificially drop the background connection)*
 
-Or: `uv run codebase-api` / `uv run python main.py` (see `pyproject.toml`).
-
-- **Health:** `GET http://127.0.0.1:8000/health`
-- **Inngest:** `GET/PUT/POST http://127.0.0.1:8000/api/inngest`
-
-Avoid `--reload` during long ingests if you see dropped connections.
-
-### 2. Inngest Dev Server
-
-Must target **the same host:port as FastAPI**, not Endee:
-
+**Terminal 3: Start the Inngest Dev Server**
 ```bash
 npx inngest-cli@latest dev -u http://127.0.0.1:8000/api/inngest
 ```
+*(You can monitor the workflow background pipelines graphically at `http://127.0.0.1:8288`)*
 
-Dashboard: usually `http://127.0.0.1:8288` (CLI prints URLs).
-
-### 3. Streamlit
-
+**Terminal 4: Start the Streamlit UI**
 ```bash
 uv run streamlit run app.py
 ```
-
-Default Streamlit port: **8501**. The UI calls `API_BASE_URL` for `/ingest`, `/ingest/status`, and `/query`.
-
----
-
-## Workflows
-
-### A. Ingest (`repo/ingest`)
-
-1. User enters a GitHub URL in Streamlit → `POST /ingest` with `{ "repo_url": "..." }`.
-2. API sets ingest status to **running** and sends Inngest event `repo/ingest`.
-3. Inngest invokes **`ingest_github_repo`** (`workflow.py`):
-   - **`clone_repo`** — shallow git clone to a temp directory (in a thread).
-   - **`get_code_files`** — walk tree; extensions include `.py`, `.md`, `.js`, `.ts`, `.html` (see `ingestion.py`).
-   - **`clear_old_index`** — delete/recreate the Endee index name `code_intelligence` so a new ingest replaces old vectors.
-   - **`parse_and_chunk_files`** — Python: functions/classes/module via AST; other files: one chunk per file (`parse_generic_file`).
-   - **`embed_and_insert_batch_*`** — batches of 50 chunks; embed + upsert (blocking work in `asyncio.to_thread`).
-   - **`cleanup_repo`** — remove temp clone.
-   - **`mark_done`** — sets `INGEST_STATUS["status"]` to `completed` (or error path sets `error`).
-4. Streamlit polls `GET /ingest/status` until **completed** or **error**.
-
-### B. Query
-
-1. User enters question and optional **top_k** (number of chunks).
-2. `POST /query` with `{ "query": "...", "top_k": N }`.
-3. `retrieve_context` embeds the query, queries Endee, collects `meta` payloads.
-4. `format_context` builds the text block for the LLM.
-5. `generate_answer` calls Groq with a **context-only** system prompt.
-6. Response: `answer` + `sources` (file / type / name strings).
-
----
-
-## HTTP API summary
-
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/health` | `{ "ok": true }` |
-| POST | `/ingest` | Body: `{ "repo_url": string }` — queues Inngest ingest |
-| GET | `/ingest/status` | `{ "status": "idle" \| "running" \| "completed" \| "error" }` |
-| POST | `/query` | Body: `{ "query": string, "top_k"?: number }` |
-| * | `/api/inngest` | Inngest SDK — sync and step execution |
-
----
-
-## Module reference (short)
-
-| Module | Role |
-|--------|------|
-| `config.py` | Env loading; `endee_url_collides_with_api()` prevents FastAPI/Endee port mix-up. |
-| `ingestion.py` | `clone_repo`, `get_code_files`, `cleanup_repo`. |
-| `ast_parser.py` | `parse_python_file`, `parse_generic_file`. |
-| `chunks.py` | Rich text + metadata for embedding. |
-| `embeddings.py` | Model load, `generate_embeddings` / `generate_embedding`. |
-| `endee_store.py` | `EndeeDB`: list/create index, upsert, query; UUID vector ids. |
-| `retrieval.py` | `retrieve_context`, `format_context`. |
-| `llm.py` | Groq chat with grounded prompt. |
-| `workflow.py` | Inngest client, `ingest_github_repo`, `INGEST_STATUS`. |
-| `main.py` | FastAPI app, lifespan preloads encoder, Inngest `serve`. |
-| `app.py` | Streamlit: ingest polling, `top_k`, Q&A display. |
-
----
-
-## Troubleshooting
-
-- **`Connection refused` to port 8001** — Endee is not running. Run `docker compose up -d` or point `ENDEE_URL` at your real Endee URL.
-- **`404` on `/api/v1/...` while `ENDEE_URL` looks like port 8000** — You pointed Endee at **FastAPI**. Use a separate port for Endee (e.g. 8001).
-- **`.env` ignored** — Project uses `load_dotenv(..., override=True)` so `.env` wins over shell. Restart processes after edits.
-- **Inngest “can’t find app” during ingest** — Heavy work runs in background threads; avoid starving the server. Don’t use `--reload` during long runs if connections drop.
-- **Empty search results** — Ingest must finish with **`indexed_chunks` > 0**; check Inngest run output. Ensure Groq key is set for answers.
-
----
-
-## License / security
-
-- Do **not** commit `.env` (contains secrets). Use `.env.example` as a template.
-- Rotate API keys if they were ever committed or shared.
-
----
-
-## Console script
-
-`pyproject.toml` defines:
-
-```text
-codebase-api = main:main
-```
-
-So `uv run codebase-api` starts Uvicorn on `127.0.0.1:8000` (see `main.py`).
+*(Opens the primary interactive window at `http://localhost:8501`)*
