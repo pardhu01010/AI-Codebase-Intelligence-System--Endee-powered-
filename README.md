@@ -18,6 +18,7 @@ Heavy, long-running repository ingestions are seamlessly orchestrated in the bac
 ![Question and Answer](docs/screenshots/qna_results.png)
 
 
+
 > **Image 3: Inngest Dev Server - Run Trace**  
 > *(Showcase the Inngest dashboard at http://localhost:8288 highlighting a completed `ingest_github_repo` run with the `clear_old_index` and `embed_and_insert_batch` steps glowing green.)*  
 ![Inngest Trace](docs/screenshots/inngest_trace.png)
