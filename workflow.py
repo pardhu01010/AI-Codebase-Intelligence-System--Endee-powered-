@@ -5,7 +5,12 @@ from typing import Any
 
 import inngest
 
-from ast_parser import parse_python_file, parse_generic_file
+from ast_parser import (
+    parse_python_file, 
+    parse_generic_file,
+    parse_jupyter_notebook,
+    parse_pdf_file
+)
 from chunks import build_chunks
 from config import (
     INNGEST_DEV,
@@ -35,6 +40,10 @@ def _parse_and_chunk_sync(code_files: list[str]) -> list[dict[str, Any]]:
     for file_path in code_files:
         if file_path.endswith(".py"):
             parsed_items = parse_python_file(file_path)
+        elif file_path.endswith(".ipynb"):
+            parsed_items = parse_jupyter_notebook(file_path)
+        elif file_path.endswith(".pdf"):
+            parsed_items = parse_pdf_file(file_path)
         else:
             parsed_items = parse_generic_file(file_path)
         

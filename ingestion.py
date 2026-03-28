@@ -11,7 +11,7 @@ def clone_repo(repo_url: str) -> str:
     temp_dir = tempfile.mkdtemp(prefix="endee_repo_")
     try:
         subprocess.run(
-            ["git", "clone", "--depth", "1", repo_url, temp_dir],
+            ["git", "clone", "-c", "core.longpaths=true", "--depth", "1", repo_url, temp_dir],
             check=True,
             capture_output=True,
         )
@@ -22,15 +22,20 @@ def clone_repo(repo_url: str) -> str:
 
 
 def get_code_files(
-    repo_path: str, extensions: set = {".py", ".md", ".js", ".ts", ".html"}
+    repo_path: str, extensions: set = {".py", ".md", ".js", ".ts", ".html", ".pdf", ".ipynb"}
 ) -> List[str]:
-    """Filters code files by extension, ignoring .git, venv, etc."""
+    """Filters code files by extension, ignoring .git, venv, minified files, etc."""
     code_files = []
     ignore_dirs = {".git", "node_modules", "venv", ".venv", "__pycache__", "build", "dist"}
 
     for root, dirs, files in os.walk(repo_path):
         dirs[:] = [d for d in dirs if d not in ignore_dirs]
         for file in files:
+            name_lower = file.lower()
+            # Block massive unreadable minified assets that cause LLM rate limits
+            if ".min.js" in name_lower or ".min.css" in name_lower or "-min" in name_lower:
+                continue
+                
             if Path(file).suffix in extensions:
                 code_files.append(os.path.join(root, file))
 
