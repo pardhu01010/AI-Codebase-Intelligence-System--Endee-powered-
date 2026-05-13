@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  endee:
+    image: endeeio/endee-server:latest
+    container_name: endee-vector-db
+    ports:
+      - "8001:8080"
+    volumes:
+      - endee-data:/data
+    restart: unless-stopped
+
+volumes:
+  endee-data:
